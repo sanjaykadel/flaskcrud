@@ -1,5 +1,5 @@
 def viewsfile(data):
-    name = data['name']
+    name = data['ModelName']
     name_lower = name.lower()
     columns = data.get('columns', {})
     

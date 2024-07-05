@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Model Schema</title>
+    <title>Create Models </title>
     <style>
         /* Global styles */
         body {
@@ -18,11 +18,12 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 800px;
+            width: 100%;
             background-color: #fff;
-            padding: 30px;
+            padding: 40px;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         h1 {
@@ -44,6 +45,7 @@
         input[type="text"],
         input[type="number"],
         select {
+            width: calc(100% - 22px);
             padding: 10px;
             margin-top: 5px;
             border: 1px solid #ccc;
@@ -81,16 +83,30 @@
             margin-top: 15px;
             border-radius: 4px;
             background-color: #f9f9f9;
+            position: relative;
         }
 
         .column label {
-            margin: 0;
+            margin: 0 10px;
         }
 
         .column input[type="text"],
         .column input[type="number"],
         .column select {
-            width: 100px;
+            width: 150px;
+        }
+
+        .closeBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+
+        .closeBtn svg {
+            width: 20px;
+            height: 20px;
+            fill: #333;
         }
 
         .lengthField {
@@ -126,6 +142,16 @@
                 width: 100%;
                 margin-top: 5px;
             }
+
+            .closeBtn {
+                top: 5px;
+                right: 5px;
+            }
+
+            .closeBtn svg {
+                width: 16px;
+                height: 16px;
+            }
         }
     </style>
 </head>
@@ -133,9 +159,13 @@
     <div class="container">
         <h1>Create Model Schema</h1>
         <form id="schemaForm">
-            <label for="modelName">Model Name:</label>
-            <input type="text" id="modelName" required>
+            <ul>
+                <label for="ProjectName">Project Name:</label>
+                <input type="text" id="ProjectName" required>
 
+                <label for="modelName">Model Name:</label>
+                <input type="text" id="modelName" required>
+            </ul>
             <div id="columns"></div>
 
             <button type="button" id="addFieldButton">Add Field</button>
@@ -151,9 +181,16 @@
             const columnDiv = document.createElement('div');
             columnDiv.className = 'column';
             columnDiv.innerHTML = `
+                <span class="closeBtn" onclick="removeColumn(this)">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M18.3 5.71a1 1 0 00-1.42 0L12 10.59 7.12 5.7A1 1 0 105.7 7.12L10.59 12l-4.89 4.88a1 1 0 001.42 1.42L12 13.41l4.88 4.89a1 1 0 001.42-1.42L13.41 12l4.89-4.88a1 1 0 000-1.42z"/>
+                    </svg>
+                </span>
                 <label>Column Name: <input type="text" class="columnName" required></label>
+                <div class="error columnNameError"></div>
                 <label>Type: 
                     <select class="columnType" onchange="toggleLengthField(this)" required>
+                        <option value="">Select Type</option>
                         <option value="String">String</option>
                         <option value="Integer">Integer</option>
                         <option value="Float">Float</option>
@@ -161,10 +198,16 @@
                         <option value="DateTime">DateTime</option>
                     </select>
                 </label>
+                <div class="error columnTypeError"></div>
                 <label class="lengthField">Length: <input type="number" class="columnLength"></label>
+                <div class="error columnLengthError"></div>
             `;
             columnsDiv.appendChild(columnDiv);
             toggleLengthField(columnDiv.querySelector('.columnType')); // Set initial state
+        }
+
+        function removeColumn(closeBtn) {
+            closeBtn.closest('.column').remove();
         }
 
         function toggleLengthField(select) {
@@ -175,7 +218,8 @@
         document.getElementById('schemaForm').onsubmit = function(e) {
             e.preventDefault();
             const schema = {
-                name: document.getElementById('modelName').value,
+                ModelName: document.getElementById('modelName').value,
+                ProjectName: document.getElementById('ProjectName').value,
                 columns: {}
             };
 
@@ -189,6 +233,7 @@
                     schema.columns[name].length = parseInt(length);
                 }
             });
+
 
             fetch('/generate', {
                 method: 'POST',
@@ -206,15 +251,54 @@
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
+                const ProjectName = document.getElementById('ProjectName').value;
+                const zipfile = ProjectName + '.zip'
                 a.style.display = 'none';
                 a.href = url;
-                a.download = 'generated_files.zip';
+                a.download = zipfile;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
             })
             .catch((error) => console.error('Error:', error));
         };
+        function validateForm() {
+            let isValid = true;
+            const modelName = document.getElementById('modelName');
+            const modelNameError = document.getElementById('modelNameError');
+
+            modelNameError.textContent = modelName.value ? '' : 'Model name is required';
+            if (!modelName.value) isValid = false;
+
+            const ProjectName = document.getElementById('ProjectName');
+            const ProjectNameError = document.getElementById('ProjectNameError');
+
+            ProjectNameError.textContent = ProjectName.value ? '' : 'ProjectName is required';
+            if (!ProjectName.value) isValid = false;
+
+            document.querySelectorAll('.column').forEach(column => {
+                const nameInput = column.querySelector('.columnName');
+                const typeSelect = column.querySelector('.columnType');
+                const lengthInput = column.querySelector('.columnLength');
+                const nameError = column.querySelector('.columnNameError');
+                const typeError = column.querySelector('.columnTypeError');
+                const lengthError = column.querySelector('.columnLengthError');
+
+                nameError.textContent = nameInput.value ? '' : 'Column name is required';
+                typeError.textContent = typeSelect.value ? '' : 'Column type is required';
+
+                if (typeSelect.value === 'String' && lengthInput.style.visibility !== 'hidden') {
+                    lengthError.textContent = lengthInput.value ? '' : 'Length is required for String type';
+                    if (!lengthInput.value) isValid = false;
+                } else {
+                    lengthError.textContent = '';
+                }
+
+                if (!nameInput.value || !typeSelect.value) isValid = false;
+            });
+
+            return isValid;
+        }
     </script>
 </body>
 </html>

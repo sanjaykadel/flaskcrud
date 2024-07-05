@@ -1,5 +1,5 @@
 def modelfile(data):
-    name = data['name']
+    name = data['ModelName']
     columns = data.get('columns', {})
     moddata = []
     to_dict_items = []

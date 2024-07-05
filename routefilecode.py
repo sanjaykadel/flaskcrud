@@ -1,5 +1,5 @@
 def routefile(data):
-    name = data['name'].lower()
+    name = data['ModelName'].lower()
     routecode = f'''
 from views import create_{name}, get_{name}s, get_{name}, update_{name}, delete_{name}
 

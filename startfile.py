@@ -1,4 +1,4 @@
-def mainfile(data):
+def startfile(data):
     name = data['ModelName'].lower()
     print("llllllllllllll",name)
     maincode = f'''
