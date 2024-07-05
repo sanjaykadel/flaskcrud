@@ -1,11 +1,220 @@
-<!-- index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Flask Template Example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Model Schema</title>
+    <style>
+        /* Global styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        select {
+            appearance: none;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .column {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        .column label {
+            margin: 0;
+        }
+
+        .column input[type="text"],
+        .column input[type="number"],
+        .column select {
+            width: 100px;
+        }
+
+        .lengthField {
+            visibility: hidden;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            select {
+                font-size: 14px;
+            }
+
+            button {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+
+            .column {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .column label,
+            .column input[type="text"],
+            .column input[type="number"],
+            .column select {
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello, Flask!</h1>
-    <p>This is a simple Flask template example.</p>
+    <div class="container">
+        <h1>Create Model Schema</h1>
+        <form id="schemaForm">
+            <label for="modelName">Model Name:</label>
+            <input type="text" id="modelName" required>
+
+            <div id="columns"></div>
+
+            <button type="button" id="addFieldButton">Add Field</button>
+            <button type="submit">Generate Files</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('addFieldButton').addEventListener('click', addColumn);
+
+        function addColumn() {
+            const columnsDiv = document.getElementById('columns');
+            const columnDiv = document.createElement('div');
+            columnDiv.className = 'column';
+            columnDiv.innerHTML = `
+                <label>Column Name: <input type="text" class="columnName" required></label>
+                <label>Type: 
+                    <select class="columnType" onchange="toggleLengthField(this)" required>
+                        <option value="String">String</option>
+                        <option value="Integer">Integer</option>
+                        <option value="Float">Float</option>
+                        <option value="Boolean">Boolean</option>
+                        <option value="DateTime">DateTime</option>
+                    </select>
+                </label>
+                <label class="lengthField">Length: <input type="number" class="columnLength"></label>
+            `;
+            columnsDiv.appendChild(columnDiv);
+            toggleLengthField(columnDiv.querySelector('.columnType')); // Set initial state
+        }
+
+        function toggleLengthField(select) {
+            const lengthField = select.closest('.column').querySelector('.lengthField');
+            lengthField.style.visibility = select.value === 'String' ? 'visible' : 'hidden';
+        }
+
+        document.getElementById('schemaForm').onsubmit = function(e) {
+            e.preventDefault();
+            const schema = {
+                name: document.getElementById('modelName').value,
+                columns: {}
+            };
+
+            document.querySelectorAll('.column').forEach(column => {
+                const name = column.querySelector('.columnName').value;
+                const type = column.querySelector('.columnType').value;
+                const length = column.querySelector('.columnLength').value;
+
+                schema.columns[name] = { type: type };
+                if (type === 'String' && length) {
+                    schema.columns[name].length = parseInt(length);
+                }
+            });
+
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(schema)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'generated_files.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch((error) => console.error('Error:', error));
+        };
+    </script>
 </body>
 </html>
