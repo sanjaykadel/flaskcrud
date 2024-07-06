@@ -26,7 +26,7 @@ def get_data():
     database_result = databasefile(schema)
     start_result = startfile(schema)
     data = {
-        'main.pu': main_result,
+        'main.py': main_result,
         'model.py': model_result,
         'routes.py': route_result,
         'views.py': views_result,
@@ -81,4 +81,4 @@ def generate_files():
     )
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
