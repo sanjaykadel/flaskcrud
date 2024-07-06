@@ -15,19 +15,36 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/data', methods=['POST'])
+def get_data():
+    schema = request.json
+    main_result = mainfile(schema)
+    model_result = modelfile(schema)
+    route_result = routefile(schema)
+    views_result = viewsfile(schema)
+    start_result = startfile(schema)
+
+    data = {
+        'main_result': main_result,
+        'model_result': model_result,
+        'route_result': route_result,
+        'views_result': views_result,
+        'start_result': start_result
+    }
+
+    return jsonify(data)
+
 @app.route('/generate', methods=['POST'])
 def generate_files():
     schema = request.json
+    
     project_name = schema.get("ProjectName", "project")
     zip_filename = f'{project_name}.zip'
-    print(zip_filename)
 
-    # Temporary directory to store generated files
     temp_dir = project_name
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
-    # Generate and write files
     files_to_generate = {
         'main.py': mainfile,
         'model.py': modelfile,
@@ -41,12 +58,10 @@ def generate_files():
         with open(os.path.join(temp_dir, filename), 'w') as file:
             file.write(content)
 
-    # Create requirements.txt
     requirements_content = "Flask==2.3.2\nflask_sqlalchemy\n"
     with open(os.path.join(temp_dir, 'requirements.txt'), 'w') as file:
         file.write(requirements_content)
 
-    # Create a ZIP file containing the temporary directory
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, 'w') as zf:
         for root, _, files in os.walk(temp_dir):
@@ -54,11 +69,8 @@ def generate_files():
                 zf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(temp_dir, '..')))
         
     memory_file.seek(0)
-
-    # Cleanup: Delete the temporary directory after zipping
     shutil.rmtree(temp_dir)
 
-    # Send the ZIP file for download
     return send_file(
         memory_file,
         mimetype='application/zip',

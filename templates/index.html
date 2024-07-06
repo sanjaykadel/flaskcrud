@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Models </title>
+    <title>Create Models</title>
     <style>
         /* Global styles */
         body {
@@ -14,7 +14,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         .container {
@@ -113,6 +113,41 @@
             visibility: hidden;
         }
 
+        #previewContainer {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 20px;
+            background-color: #fff;
+        }
+
+        #previewContent {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .data-pair {
+            margin-bottom: 10px;
+        }
+
+        .data-key {
+            font-weight: bold;
+        }
+
+        .data-value {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background-color: #f4f4f4;
+            padding: 5px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .container {
@@ -157,24 +192,34 @@
 </head>
 <body>
     <div class="container">
-        <h1>Create Model Schema</h1>
+        <h1>Create Models</h1>
         <form id="schemaForm">
-            <ul>
-                <label for="ProjectName">Project Name:</label>
-                <input type="text" id="ProjectName" required>
+            <label for="ProjectName">Project Name:</label>
+            <input type="text" id="ProjectName" required placeholder="Enter project name" style="width: 50%;">
 
-                <label for="modelName">Model Name:</label>
-                <input type="text" id="modelName" required>
-            </ul>
+            <label for="modelName">Model Name:</label>
+            <input type="text" id="modelName" required placeholder="Enter model name" style="width: 50%;">
+
             <div id="columns"></div>
-
-            <button type="button" id="addFieldButton">Add Field</button>
-            <button type="submit">Generate Files</button>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="addFieldButton" style="padding: 10px 20px; font-size: 16px;">Add Field</button>
+                <button type="button" id="generateFilesButton" style="padding: 10px 20px; font-size: 16px;">Generate Files</button>
+                <button type="button" id="previewFilesButton" style="padding: 10px 20px; font-size: 16px;">Preview Files</button>
+            </div>
         </form>
+
+        <div id="previewContainer" style="display: none;">
+            <h2>Preview Data</h2>
+            <div id="previewContent"></div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('addFieldButton').addEventListener('click', addColumn);
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('addFieldButton').addEventListener('click', addColumn);
+            document.getElementById('generateFilesButton').addEventListener('click', generateFiles);
+            document.getElementById('previewFilesButton').addEventListener('click', previewFiles);
+        });
 
         function addColumn() {
             const columnsDiv = document.getElementById('columns');
@@ -215,8 +260,7 @@
             lengthField.style.visibility = select.value === 'String' ? 'visible' : 'hidden';
         }
 
-        document.getElementById('schemaForm').onsubmit = function(e) {
-            e.preventDefault();
+        function collectFormData() {
             const schema = {
                 ModelName: document.getElementById('modelName').value,
                 ProjectName: document.getElementById('ProjectName').value,
@@ -234,6 +278,11 @@
                 }
             });
 
+            return schema;
+        }
+
+        function generateFiles() {
+            const schema = collectFormData();
 
             fetch('/generate', {
                 method: 'POST',
@@ -251,8 +300,8 @@
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                const ProjectName = document.getElementById('ProjectName').value;
-                const zipfile = ProjectName + '.zip'
+                const projectName = document.getElementById('ProjectName').value;
+                const zipfile = projectName + '.zip'
                 a.style.display = 'none';
                 a.href = url;
                 a.download = zipfile;
@@ -261,43 +310,49 @@
                 window.URL.revokeObjectURL(url);
             })
             .catch((error) => console.error('Error:', error));
-        };
-        function validateForm() {
-            let isValid = true;
-            const modelName = document.getElementById('modelName');
-            const modelNameError = document.getElementById('modelNameError');
+        }
 
-            modelNameError.textContent = modelName.value ? '' : 'Model name is required';
-            if (!modelName.value) isValid = false;
+        function previewFiles() {
+            const schema = collectFormData();
+            fetch('/data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(schema)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const previewContainer = document.getElementById('previewContainer');
+                const previewContent = document.getElementById('previewContent');
+                previewContent.innerHTML = generateHTMLPreview(data);
+                previewContainer.style.display = 'block';
+            })
+            .catch((error) => console.error('Error:', error));
+        }
 
-            const ProjectName = document.getElementById('ProjectName');
-            const ProjectNameError = document.getElementById('ProjectNameError');
-
-            ProjectNameError.textContent = ProjectName.value ? '' : 'ProjectName is required';
-            if (!ProjectName.value) isValid = false;
-
-            document.querySelectorAll('.column').forEach(column => {
-                const nameInput = column.querySelector('.columnName');
-                const typeSelect = column.querySelector('.columnType');
-                const lengthInput = column.querySelector('.columnLength');
-                const nameError = column.querySelector('.columnNameError');
-                const typeError = column.querySelector('.columnTypeError');
-                const lengthError = column.querySelector('.columnLengthError');
-
-                nameError.textContent = nameInput.value ? '' : 'Column name is required';
-                typeError.textContent = typeSelect.value ? '' : 'Column type is required';
-
-                if (typeSelect.value === 'String' && lengthInput.style.visibility !== 'hidden') {
-                    lengthError.textContent = lengthInput.value ? '' : 'Length is required for String type';
-                    if (!lengthInput.value) isValid = false;
-                } else {
-                    lengthError.textContent = '';
-                }
-
-                if (!nameInput.value || !typeSelect.value) isValid = false;
+        function generateHTMLPreview(data) {
+            let html = '';
+            Object.entries(data).forEach(([key, value]) => {
+                html += `
+                    <div class="data-pair">
+                        <span class="data-key">${key}:</span>
+                        <pre class="data-value">${prettifyValue(value)}</pre>
+                    </div>
+                `;
             });
+            return html;
+        }
 
-            return isValid;
+        function prettifyValue(value) {
+            let prettifiedValue;
+            try {
+                const jsonValue = JSON.parse(value);
+                prettifiedValue = JSON.stringify(jsonValue, null, 2);
+            } catch (e) {
+                prettifiedValue = value.toString();
+            }
+            return prettifiedValue;
         }
     </script>
 </body>
