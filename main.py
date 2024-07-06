@@ -7,6 +7,7 @@ from mainfilecode import mainfile
 from modelfilecode import modelfile
 from routefilecode import routefile
 from viewsfilecode import viewsfile
+from databasecode import databasefile
 from startfile import startfile
 
 app = Flask(__name__)
@@ -22,14 +23,15 @@ def get_data():
     model_result = modelfile(schema)
     route_result = routefile(schema)
     views_result = viewsfile(schema)
+    database_result = databasefile(schema)
     start_result = startfile(schema)
-
     data = {
-        'main_result': main_result,
-        'model_result': model_result,
-        'route_result': route_result,
-        'views_result': views_result,
-        'start_result': start_result
+        'main.pu': main_result,
+        'model.py': model_result,
+        'routes.py': route_result,
+        'views.py': views_result,
+        'database.py':database_result,
+        'start.sh': start_result
     }
 
     return jsonify(data)

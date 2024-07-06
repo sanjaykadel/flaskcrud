@@ -18,7 +18,7 @@ def viewsfile(data):
     update_lines = []
     for column_name in columns:
         update_lines.append(f"    if '{column_name}' in data:")
-        update_lines.append(f"        {name_lower}.{column_name} = data['{column_name}']")
+        update_lines.append(f"        {name_lower}_instance.{column_name} = data['{column_name}']")
     
     update_function = '\n'.join(update_lines)
 
@@ -40,18 +40,18 @@ def create_{name_lower}():
 
 def get_{name_lower}s():
     {name_lower}s = {name}.query.all()
-    return jsonify({{'{name_lower}s': [{name_lower}.to_dict() for {name_lower} in {name_lower}s]}})
+    return jsonify({{'{name_lower}s': [{name_lower}_instance.to_dict() for {name_lower}_instance in {name_lower}s]}})
 
 def get_{name_lower}(id):
-    {name_lower} = {name}.query.get(id)
-    if {name_lower}:
-        return jsonify({{'{name_lower}': {name_lower}.to_dict()}})
+    {name_lower}_instance = {name}.query.get(id)
+    if {name_lower}_instance:
+        return jsonify({{'{name_lower}': {name_lower}_instance.to_dict()}})
     else:
         return make_response(jsonify({{'message': '{name} not found'}}), 404)
 
 def update_{name_lower}(id):
-    {name_lower} = {name}.query.get(id)
-    if {name_lower}:
+    {name_lower}_instance = {name}.query.get(id)
+    if {name_lower}_instance:
         data = request.get_json()
 {update_function}
         db.session.commit()
@@ -60,9 +60,9 @@ def update_{name_lower}(id):
         return jsonify({{'message': '{name} not found'}}), 404
 
 def delete_{name_lower}(id):
-    {name_lower} = {name}.query.get(id)
-    if {name_lower}:
-        db.session.delete({name_lower})
+    {name_lower}_instance = {name}.query.get(id)
+    if {name_lower}_instance:
+        db.session.delete({name_lower}_instance)
         db.session.commit()
         return jsonify({{'message': '{name} deleted successfully'}})
     else:
